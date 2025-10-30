@@ -12,6 +12,7 @@ import { ConnectionState, LocalParticipant, Track } from "livekit-client";
 import { Button, LoadingSVG } from "@/components/ui/button";
 import { MicrophoneButton } from "@/components/microphone-button";
 import { useMultibandTrackVolume } from "@/hooks/use-track-volume";
+import { cn } from "@/lib/utils";
 import { Typewriter } from "./typewriter";
 
 export interface PlaygroundProps {
@@ -43,6 +44,35 @@ export function Playground({ onConnect }: PlaygroundProps) {
     9
   );
 
+  const statusConfig = useMemo(() => {
+    switch (roomState) {
+      case ConnectionState.Connected:
+        return {
+          label: "Connected",
+          description:
+            "You are streaming audio to the Groq agent. Start speaking and watch the transcript build in real-time.",
+          indicator: "bg-emerald-400",
+          highlight: "text-emerald-200",
+        } as const;
+      case ConnectionState.Connecting:
+        return {
+          label: "Connecting",
+          description:
+            "We are provisioning your LiveKit room and enabling noise reduction. This usually takes just a moment.",
+          indicator: "bg-amber-300",
+          highlight: "text-amber-100",
+        } as const;
+      default:
+        return {
+          label: "Disconnected",
+          description:
+            "Get started by launching a session. We'll automatically enable your microphone when you're connected.",
+          indicator: "bg-white/40",
+          highlight: "text-white/60",
+        } as const;
+    }
+  }, [roomState]);
+
   const audioTileContent = useMemo(() => {
     const isLoading = roomState === ConnectionState.Connecting;
     const isActive = !isLoading && roomState !== ConnectionState.Disconnected;
@@ -65,9 +95,16 @@ export function Playground({ onConnect }: PlaygroundProps) {
             isSpaceBarEnabled={true}
           />
           <Button
-            className="flex items-center justify-center px-3 rounded-[4px]"
+            className="aspect-square h-10 w-10"
+            size="small"
+            state="secondary"
             onClick={() =>
               onConnect(roomState === ConnectionState.Disconnected)
+            }
+            aria-label={
+              roomState === ConnectionState.Disconnected
+                ? "Connect to session"
+                : "Disconnect from session"
             }
           >
             <svg
@@ -105,32 +142,32 @@ export function Playground({ onConnect }: PlaygroundProps) {
           <Button
             state="primary"
             size="large"
-            className={`relative w-full text-base text-black ${
-              isLoading ? "pointer-events-none" : ""
-            }`}
+            className="relative w-full overflow-hidden"
+            disabled={isLoading}
             onClick={() =>
               onConnect(roomState === ConnectionState.Disconnected)
             }
           >
-            <div
-              className={`w-full ${isLoading ? "opacity-0" : "opacity-100"}`}
+            <span
+              className={cn(
+                "transition-opacity duration-200",
+                isLoading ? "opacity-0" : "opacity-100",
+              )}
             >
-              Start voice transcription
-            </div>
-            <div
-              className={`absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 ${
-                isLoading ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              <LoadingSVG diameter={16} strokeWidth={3} />
-            </div>
+              Start live transcription
+            </span>
+            {isLoading ? (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <LoadingSVG diameter={16} strokeWidth={3} />
+              </span>
+            ) : null}
           </Button>
         </motion.div>
       </div>
     );
 
     const visualizerContent = (
-      <div className="flex flex-col justify-space-between h-full w-full">
+      <div className="flex h-full w-full flex-col justify-between">
         <div className="min-h-12 h-12 w-full relative">
           <AnimatePresence>
             {!isActive ? startConversationButton : null}
@@ -147,9 +184,31 @@ export function Playground({ onConnect }: PlaygroundProps) {
 
   return (
     <>
-      <div className="relative flex-col grow basis-1/2 gap-4 h-full w-full">
-        <Typewriter typingSpeed={25} />
-        <div className="absolute left-0 bottom-0 w-full bg-groq-accent-bg border-t border-white/20 pt-2">
+      <div className="relative flex h-full w-full flex-col gap-6">
+        <motion.section
+          key={statusConfig.label}
+          className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm shadow-[0_18px_80px_-40px_rgba(15,15,15,0.6)] backdrop-blur-lg"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        >
+          <div className="flex items-center gap-3">
+            <span
+              className={cn(
+                "h-2.5 w-2.5 rounded-full shadow-[0_0_12px_rgba(255,255,255,0.45)]",
+                statusConfig.indicator,
+              )}
+            />
+            <p className="text-xs uppercase tracking-[0.28em] text-white/60">
+              {statusConfig.label}
+            </p>
+          </div>
+          <p className={cn("mt-3 leading-relaxed text-white/80", statusConfig.highlight)}>
+            {statusConfig.description}
+          </p>
+        </motion.section>
+        <Typewriter typingSpeed={25} className="flex-1" />
+        <div className="absolute bottom-0 left-0 w-full border-t border-white/10 bg-black/25 px-3 pb-4 pt-3 backdrop-blur-2xl">
           {audioTileContent}
         </div>
       </div>
