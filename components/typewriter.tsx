@@ -3,16 +3,19 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { ConnectionState } from "livekit-client";
+
 import { useTranscriber } from "@/hooks/use-transcriber";
+import { cn } from "@/lib/utils";
 
 export interface TypewriterProps {
   typingSpeed?: number;
+  className?: string;
 }
 
 const emptyText =
   "Voice transcription will appear after you connect and start talking";
 
-export function Typewriter({ typingSpeed = 50 }: TypewriterProps) {
+export function Typewriter({ typingSpeed = 50, className = "" }: TypewriterProps) {
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const { state, transcriptions } = useTranscriber();
   const [displayedText, setDisplayedText] = useState<string>("");
@@ -72,18 +75,23 @@ export function Typewriter({ typingSpeed = 50 }: TypewriterProps) {
   }, []);
 
   return (
-    <div className="relative h-full text-lg font-mono pl-3 relative pt-2 pb-16">
-      <div className="pointer-events-none h-1/4 absolute top-0 left-0 w-full bg-gradient-to-b from-groq-accent-bg to-transparent"></div>
+    <div
+      className={cn(
+        "relative h-full overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-4 pb-20 pt-4 font-mono text-lg shadow-[0_18px_80px_-40px_rgba(15,15,15,0.6)] backdrop-blur-md",
+        className,
+      )}
+    >
+      <div className="pointer-events-none absolute left-0 top-0 h-1/3 w-full bg-gradient-to-b from-black/40 via-black/10 to-transparent" />
       {state === ConnectionState.Disconnected && (
-        <div className="text-white/40 h-full items-center pb-16 max-w-md flex">
-          <p>{emptyTextIntro}</p>
+        <div className="flex h-full max-w-md items-center pb-16 text-white/50">
+          <p className="leading-relaxed">{emptyTextIntro}</p>
         </div>
       )}
       {state !== ConnectionState.Disconnected && (
-        <div className="h-full overflow-y-auto">
-          <div className="h-48" />
+        <div className="h-full space-y-6 overflow-y-auto pr-2">
+          <div className="h-32" />
           <motion.p
-            className="mr-2 whitespace-pre-wrap"
+            className="whitespace-pre-wrap pr-2 text-white/90"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
@@ -92,7 +100,7 @@ export function Typewriter({ typingSpeed = 50 }: TypewriterProps) {
             <motion.span
               animate={!isTyping && { opacity: [1, 0, 1] }}
               transition={{ duration: 0.5, delay: 0.2, repeat: Infinity }}
-              className="relative inline-block w-3 h-3 rounded-full bg-white"
+              className="relative inline-block h-3 w-3 rounded-full bg-white"
             />
           </motion.p>
           <div ref={transcriptionEndRef} className="h-1/2" />
